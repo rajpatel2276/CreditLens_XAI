@@ -1,0 +1,78 @@
+{
+  "train_size": 800,
+  "test_size": 200,
+  "default_rate_pct": 30.0,
+  "scale_pos_weight": 2.33,
+  "logreg": {
+    "model": "Logistic Regression",
+    "pr_auc": 0.6816,
+    "roc_auc": 0.8154,
+    "f1_default": 0.6667,
+    "recall_default": 0.8167,
+    "precision_default": 0.5632,
+    "accuracy": 0.755,
+    "latency_ms": 0.003
+  },
+  "xgboost": {
+    "model": "XGBoost",
+    "pr_auc": 0.655,
+    "roc_auc": 0.7856,
+    "f1_default": 0.6187,
+    "recall_default": 0.7167,
+    "precision_default": 0.5443,
+    "accuracy": 0.735,
+    "latency_ms": 0.012
+  },
+  "global_shap": [
+    {
+      "feature": "checking_status",
+      "label": "Checking Account Status",
+      "mean_abs_shap": 0.7328
+    },
+    {
+      "feature": "duration",
+      "label": "Loan Duration (Months)",
+      "mean_abs_shap": 0.4383
+    },
+    {
+      "feature": "purpose",
+      "label": "Loan Purpose",
+      "mean_abs_shap": 0.4113
+    },
+    {
+      "feature": "credit_history",
+      "label": "Credit History",
+      "mean_abs_shap": 0.3648
+    },
+    {
+      "feature": "credit_amount",
+      "label": "Loan Amount",
+      "mean_abs_shap": 0.2981
+    },
+    {
+      "feature": "savings_status",
+      "label": "Savings Account Balance",
+      "mean_abs_shap": 0.2925
+    },
+    {
+      "feature": "employment",
+      "label": "Employment Tenure",
+      "mean_abs_shap": 0.2785
+    },
+    {
+      "feature": "housing",
+      "label": "Housing Status",
+      "mean_abs_shap": 0.1672
+    },
+    {
+      "feature": "installment_commitment",
+      "label": "Installment Rate (% of Income)",
+      "mean_abs_shap": 0.119
+    },
+    {
+      "feature": "age",
+      "label": "Applicant Age (Years)",
+      "mean_abs_shap": 0.1183
+    }
+  ]
+}

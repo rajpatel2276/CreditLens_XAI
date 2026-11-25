@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CreditLens XAI — Explainable Loan Predictor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
+    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 1px 3px rgba(15,23,42,0.04); }
+    .tab-active { color: #2563eb; border-bottom: 2px solid #2563eb; font-weight: 600; }
+    .tab-inactive { color: #64748b; border-bottom: 2px solid transparent; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-20">
+    <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg">C</div>
+        <div>
+          <span class="font-bold text-slate-900 text-lg">CreditLens XAI</span>
+          <span class="hidden sm:inline-block ml-2 text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+            Explainable Loan Predictor
+          </span>
+        </div>
+      </div>
+
+      <nav class="flex gap-6 h-full">
+        <button onclick="switchTab('simulator')" id="nav-simulator" class="tab-active h-full text-sm cursor-pointer">
+          Loan Risk Predictor
+        </button>
+        <button onclick="switchTab('benchmark')" id="nav-benchmark" class="tab-inactive h-full text-sm cursor-pointer">
+          Model Comparison
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-5xl w-full mx-auto px-6 py-8">
+
+    <!-- ==================== TAB 1: LOAN RISK PREDICTOR ==================== -->
+    <section id="tab-simulator" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900">Loan Default Risk & SHAP Explanation</h1>
+          <p class="text-sm text-slate-500 mt-0.5">Change any applicant detail below to see if the loan is approved and why.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="applyPreset('low')" class="text-xs px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold cursor-pointer">
+            Safe Applicant
+          </button>
+          <button onclick="applyPreset('borderline')" class="text-xs px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold cursor-pointer">
+            Borderline Applicant
+          </button>
+          <button onclick="applyPreset('high')" class="text-xs px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-800 font-semibold cursor-pointer">
+            High-Risk Applicant
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Left Input Form (5 cols) -->
+        <div class="card p-6 lg:col-span-5 space-y-4">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Applicant Details</h2>
+
+          <div>
+            <div class="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+              <span>Loan Amount</span>
+              <span id="amount-display" class="text-blue-600 font-mono">$3,500</span>
+            </div>
+            <input type="range" id="credit_amount" min="500" max="18000" step="250" value="3500"
+              oninput="syncAndRun()" class="w-full accent-blue-600 cursor-pointer" />
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+              <span>Repayment Duration</span>
+              <span id="duration-display" class="text-blue-600 font-mono">24 months</span>
+            </div>
+            <input type="range" id="duration" min="6" max="72" step="6" value="24"
+              oninput="syncAndRun()" class="w-full accent-blue-600 cursor-pointer" />
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+              <span>Applicant Age</span>
+              <span id="age-display" class="text-blue-600 font-mono">32 years</span>
+            </div>
+            <input type="range" id="age" min="19" max="75" step="1" value="32"
+              oninput="syncAndRun()" class="w-full accent-blue-600 cursor-pointer" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Checking Account Status</label>
+            <select id="checking_status" onchange="scheduleRun()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50"></select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Savings Balance</label>
+            <select id="savings_status" onchange="scheduleRun()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50"></select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Past Credit History</label>
+            <select id="credit_history" onchange="scheduleRun()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50"></select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">EMI Burden</label>
+              <select id="installment_commitment" onchange="scheduleRun()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50">
+                <option value="1">Level 1 (Low)</option>
+                <option value="2">Level 2 (Moderate)</option>
+                <option value="3" selected>Level 3 (High)</option>
+                <option value="4">Level 4 (Very High)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Housing</label>
+              <select id="housing" onchange="scheduleRun()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50"></select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Job Experience</label>
+              <select id="employment" onchange="scheduleRun()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Loan Purpose</label>
+              <select id="purpose" onchange="scheduleRun()" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-slate-50"></select>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-100">
+            <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1">
+              <span>Approval Risk Cutoff</span>
+              <span id="thresh-display" class="font-mono text-slate-900">50%</span>
+            </div>
+            <input type="range" id="threshold" min="0.30" max="0.70" step="0.05" value="0.50"
+              oninput="syncAndRun()" class="w-full accent-slate-800 cursor-pointer" />
+          </div>
+        </div>
+
+        <!-- Right Output Panel (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+
+          <!-- Main Decision Card -->
+          <div id="decision-card" class="card p-6 border-l-4 border-slate-300">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="space-y-1">
+                <span id="decision-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase bg-slate-100 text-slate-700">
+                  Loading...
+                </span>
+                <h2 id="decision-title" class="text-xl font-bold text-slate-900 pt-1">—</h2>
+                <p id="decision-summary" class="text-xs text-slate-500 leading-relaxed"></p>
+              </div>
+              <div class="text-left sm:text-right shrink-0">
+                <div class="text-xs uppercase text-slate-400 font-semibold">Default Risk</div>
+                <div id="xgb-risk" class="text-3xl font-extrabold text-slate-900">—</div>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <span>Primary Model: <strong class="text-slate-800">XGBoost Classifier</strong></span>
+              <span>Baseline Comparison (Logistic Regression): <strong id="lr-risk" class="text-slate-800">—</strong></span>
+            </div>
+          </div>
+
+          <!-- SHAP Explanation Bars -->
+          <div class="card p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 class="text-base font-bold text-slate-900">Why Did the AI Make This Decision? (SHAP)</h3>
+                <p class="text-xs text-slate-500">Shows how much each feature pushed the risk score up or down</p>
+              </div>
+              <div class="flex items-center gap-3 text-xs">
+                <span class="flex items-center gap-1.5 text-rose-700 font-medium">
+                  <span class="w-2.5 h-2.5 rounded-sm bg-rose-500"></span> Increases Risk (+)
+                </span>
+                <span class="flex items-center gap-1.5 text-emerald-700 font-medium">
+                  <span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span> Helps Approval (-)
+                </span>
+              </div>
+            </div>
+
+            <div id="shap-bars" class="space-y-3 pt-1"></div>
+          </div>
+
+          <!-- Actionable Improvement Tips -->
+          <div class="card p-6 bg-slate-900 text-white border-slate-800 space-y-3">
+            <span class="inline-block text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-md bg-blue-500/20 text-blue-300">
+              How to Improve Approval Chances
+            </span>
+            <p class="text-xs text-slate-400">Simulated effect of simple changes on this applicant's default risk:</p>
+            <div id="suggestions-list" class="space-y-2 pt-1"></div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: MODEL COMPARISON ==================== -->
+    <section id="tab-benchmark" class="hidden space-y-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Model Comparison & Top Risk Factors</h1>
+        <p class="text-sm text-slate-500 mt-0.5">Tested on 200 loan applications (70% approved, 30% defaulted in real life).</p>
+      </div>
+
+      <div id="metric-cards" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+
+      <div class="card p-6 space-y-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Most Important Factors Overall (Global SHAP)</h3>
+          <p class="text-xs text-slate-500">Which applicant features matter the most across all 200 test applications</p>
+        </div>
+        <div id="global-shap-list" class="space-y-3"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let META = null;
+    let timer = null;
+
+    async function init() {
+      const res = await fetch("/api/meta");
+      META = await res.json();
+
+      META.schema.cat_features.forEach(feat => {
+        const sel = document.getElementById(feat);
+        const labels = META.code_labels[feat] || {};
+        META.schema.categories[feat].forEach(code => {
+          const opt = document.createElement("option");
+          opt.value = code;
+          opt.text = labels[code] || code;
+          sel.appendChild(opt);
+        });
+      });
+
+      applyPreset("borderline");
+      renderBenchmark();
+    }
+
+    function syncDisplays() {
+      document.getElementById("amount-display").innerText = "$" + Number(document.getElementById("credit_amount").value).toLocaleString();
+      document.getElementById("duration-display").innerText = document.getElementById("duration").value + " months";
+      document.getElementById("age-display").innerText = document.getElementById("age").value + " years";
+      document.getElementById("thresh-display").innerText = Math.round(Number(document.getElementById("threshold").value) * 100) + "%";
+    }
+
+    function syncAndRun() {
+      syncDisplays();
+      scheduleRun();
+    }
+
+    function scheduleRun() {
+      clearTimeout(timer);
+      timer = setTimeout(evaluateApplicant, 120);
+    }
+
+    function applyPreset(type) {
+      const presets = {
+        low: {
+          credit_amount: 1750, duration: 12, age: 42, installment_commitment: 2,
+          checking_status: ">=200", savings_status: "500<=X<1000",
+          credit_history: "critical/other existing credit", employment: ">=7",
+          housing: "own", purpose: "radio/tv"
+        },
+        high: {
+          credit_amount: 9500, duration: 48, age: 23, installment_commitment: 4,
+          checking_status: "<0", savings_status: "<100",
+          credit_history: "no credits/all paid", employment: "<1",
+          housing: "rent", purpose: "new car"
+        },
+        borderline: {
+          credit_amount: 3500, duration: 24, age: 32, installment_commitment: 3,
+          checking_status: "0<=X<200", savings_status: "<100",
+          credit_history: "existing paid", employment: "1<=X<4",
+          housing: "own", purpose: "furniture/equipment"
+        }
+      };
+      const p = presets[type];
+      Object.keys(p).forEach(k => {
+        const el = document.getElementById(k);
+        if (el) el.value = p[k];
+      });
+      syncDisplays();
+      evaluateApplicant();
+    }
+
+    function switchTab(tab) {
+      ["simulator", "benchmark"].forEach(t => {
+        document.getElementById("tab-" + t).classList.toggle("hidden", t !== tab);
+        document.getElementById("nav-" + t).className = (t === tab ? "tab-active" : "tab-inactive") + " h-full text-sm cursor-pointer";
+      });
+    }
+
+    async function evaluateApplicant() {
+      const payload = {
+        credit_amount: parseInt(document.getElementById("credit_amount").value, 10),
+        duration: parseInt(document.getElementById("duration").value, 10),
+        age: parseInt(document.getElementById("age").value, 10),
+        installment_commitment: parseInt(document.getElementById("installment_commitment").value, 10),
+        checking_status: document.getElementById("checking_status").value,
+        savings_status: document.getElementById("savings_status").value,
+        credit_history: document.getElementById("credit_history").value,
+        employment: document.getElementById("employment").value,
+        housing: document.getElementById("housing").value,
+        purpose: document.getElementById("purpose").value,
+        threshold: parseFloat(document.getElementById("threshold").value),
+      };
+
+      const res = await fetch("/api/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const d = await res.json();
+
+      const card = document.getElementById("decision-card");
+      const badge = document.getElementById("decision-badge");
+      if (d.is_high_risk) {
+        card.style.borderLeftColor = "#dc2626";
+        badge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase bg-rose-100 text-rose-800";
+        badge.innerText = "High Default Risk";
+      } else {
+        card.style.borderLeftColor = "#16a34a";
+        badge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase bg-emerald-100 text-emerald-800";
+        badge.innerText = "Low Default Risk";
+      }
+
+      document.getElementById("decision-title").innerText = d.decision;
+      document.getElementById("decision-summary").innerText = d.summary;
+      document.getElementById("xgb-risk").innerText = `${d.xgb_risk_pct}%`;
+      document.getElementById("lr-risk").innerText = `${d.logreg_risk_pct}%`;
+
+      // SHAP Impact Bars
+      const maxPts = Math.max(...d.contributions.map(c => Math.abs(c.impact_pts)), 10);
+      document.getElementById("shap-bars").innerHTML = d.contributions.map(c => {
+        const pct = Math.min(100, Math.round((Math.abs(c.impact_pts) / maxPts) * 100));
+        const isRisk = c.impact_pts >= 0;
+        const barColor = isRisk ? "bg-rose-500" : "bg-emerald-500";
+        const valColor = isRisk ? "text-rose-700" : "text-emerald-700";
+        return `
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs">
+              <div>
+                <span class="font-semibold text-slate-800">${c.label}</span>
+                <span class="text-slate-400 ml-1.5">(${c.display_value})</span>
+              </div>
+              <span class="font-mono font-semibold ${valColor}">${c.impact_pts >= 0 ? "+" : ""}${c.impact_pts} pts</span>
+            </div>
+            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full ${barColor} rounded-full transition-all duration-200" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Improvement Suggestions
+      const sugEl = document.getElementById("suggestions-list");
+      if (d.suggestions.length === 0) {
+        sugEl.innerHTML = `<div class="text-xs text-emerald-300 bg-slate-800 px-3.5 py-2.5 rounded-xl">This applicant already has strong financial indicators—no major changes needed.</div>`;
+      } else {
+        sugEl.innerHTML = d.suggestions.map(s => {
+          const tag = s.approved_now
+            ? `<span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Approves Loan</span>`
+            : `<span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">Lowers Risk</span>`;
+          return `
+            <div class="flex items-center justify-between gap-3 bg-slate-800 px-3.5 py-2.5 rounded-xl text-xs">
+              <span class="text-slate-200 font-medium">${s.action}</span>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="font-mono text-slate-300">→ ${s.new_risk_pct}% risk</span>
+                ${tag}
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+
+    function renderBenchmark() {
+      const lr = META.metrics.logreg;
+      const xg = META.metrics.xgboost;
+
+      document.getElementById("metric-cards").innerHTML = [xg, lr].map(m => `
+        <div class="card p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-lg">${m.model}</h3>
+            <span class="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 font-medium">${m.model === "XGBoost" ? "Main + SHAP Model" : "Baseline Model"}</span>
+          </div>
+          <div class="grid grid-cols-3 gap-3 pt-1">
+            <div class="p-3 rounded-xl bg-blue-50/70">
+              <div class="text-xs text-blue-700 font-medium">PR-AUC Score</div>
+              <div class="text-xl font-bold text-blue-900 mt-0.5">${(m.pr_auc * 100).toFixed(1)}%</div>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50">
+              <div class="text-xs text-slate-500 font-medium">ROC-AUC</div>
+              <div class="text-xl font-bold text-slate-900 mt-0.5">${(m.roc_auc * 100).toFixed(1)}%</div>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50">
+              <div class="text-xs text-slate-500 font-medium">Default F1</div>
+              <div class="text-xl font-bold text-slate-900 mt-0.5">${(m.f1_default * 100).toFixed(1)}%</div>
+            </div>
+          </div>
+        </div>
+      `).join("");
+
+      const maxGlobal = Math.max(...META.metrics.global_shap.map(g => g.mean_abs_shap), 0.1);
+      document.getElementById("global-shap-list").innerHTML = META.metrics.global_shap.map(g => {
+        const pct = Math.round((g.mean_abs_shap / maxGlobal) * 100);
+        return `
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-semibold text-slate-800">${g.label}</span>
+              <span class="font-mono text-slate-600">${(g.mean_abs_shap * 100).toFixed(1)} avg pts</span>
+            </div>
+            <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full bg-blue-600 rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    init();
+  </script>
+</body>
+</html>
